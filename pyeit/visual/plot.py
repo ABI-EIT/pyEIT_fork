@@ -17,7 +17,8 @@ from matplotlib import (
 )
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.colorbar
-
+import pyvista as pv
+from numpy.typing import ArrayLike
 
 def ts_plot(ts, figsize=(6, 4), ylabel="ATI (Ohm)", ylim=None, xdate_format=True):
     """plot time series data"""
@@ -38,15 +39,15 @@ def ts_plot(ts, figsize=(6, 4), ylabel="ATI (Ohm)", ylim=None, xdate_format=True
 
 
 def create_mesh_plot(
-    ax: mpl_axes.Axes,
-    mesh: PyEITMesh,
-    ax_kwargs: Optional[dict] = {},
-    electrodes: Optional[np.ndarray] = None,
-    coordinate_labels: Optional[str] = None,
-    marker_kwargs: Optional[dict] = {},
-    marker_text_kwargs: Optional[dict] = {},
-    coord_label_text_kwargs: Optional[dict] = {},
-    flat_plane: Optional[str] = "z",
+        ax: mpl_axes.Axes,
+        mesh: PyEITMesh,
+        ax_kwargs: Optional[dict] = {},
+        electrodes: Optional[np.ndarray] = None,
+        coordinate_labels: Optional[str] = None,
+        marker_kwargs: Optional[dict] = {},
+        marker_text_kwargs: Optional[dict] = {},
+        coord_label_text_kwargs: Optional[dict] = {},
+        flat_plane: Optional[str] = "z",
 ):
     """
     Creates a plot to display a 2d mesh. Optionally plots electrode positions and adds coordinate labels.
@@ -125,10 +126,10 @@ def create_mesh_plot(
 
 
 def add_electrode_markers(
-    ax: mpl_axes.Axes,
-    electrode_points: list,
-    marker_kwargs: Optional[dict] = None,
-    text_kwargs: Optional[dict] = None,
+        ax: mpl_axes.Axes,
+        electrode_points: list,
+        marker_kwargs: Optional[dict] = None,
+        text_kwargs: Optional[dict] = None,
 ):
     """
     Add markers to a plot to indicate the position of electrodes
@@ -168,9 +169,9 @@ def add_electrode_markers(
 
 
 def add_coordinate_labels(
-    ax: mpl_axes.Axes,
-    coordinate_labels: Optional[str] = None,
-    text_kwargs: Optional[dict] = None,
+        ax: mpl_axes.Axes,
+        coordinate_labels: Optional[str] = None,
+        text_kwargs: Optional[dict] = None,
 ):
     """
     Add labels to a plot to clarify the relationship between the plot coordinate system and the coordinate system of the
@@ -280,18 +281,18 @@ def alignment_opposing_center(ax: mpl_axes.Axes, x: float, y: float) -> dict:
 
 
 def create_plot(
-    ax: mpl_axes.Axes,
-    eit_image: np.ndarray,
-    mesh: PyEITMesh,
-    vmin: Optional[float] = None,
-    vmax: Optional[float] = None,
-    ax_kwargs: Optional[dict] = None,
-    electrodes: Optional[np.ndarray] = None,
-    coordinate_labels: Optional[str] = None,
-    marker_kwargs: Optional[dict] = None,
-    marker_text_kwargs: Optional[dict] = None,
-    coord_label_text_kwargs: Optional[dict] = None,
-    flat_plane: Optional[str] = "z",
+        ax: mpl_axes.Axes,
+        eit_image: np.ndarray,
+        mesh: PyEITMesh,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+        ax_kwargs: Optional[dict] = None,
+        electrodes: Optional[np.ndarray] = None,
+        coordinate_labels: Optional[str] = None,
+        marker_kwargs: Optional[dict] = None,
+        marker_text_kwargs: Optional[dict] = None,
+        coord_label_text_kwargs: Optional[dict] = None,
+        flat_plane: Optional[str] = "z",
 ):
     """
     Creates a plot of a reconstructed EIT image. Optionally plots electrode positions and adds coordinate labels.
@@ -368,7 +369,7 @@ def create_plot(
 
 
 def create_image_plot(
-    ax, image, title, vmin=None, vmax=None, background=np.nan, margin=10, origin="lower"
+        ax, image, title, vmin=None, vmax=None, background=np.nan, margin=10, origin="lower"
 ):
     """
     Create a plot using imshow and set the axis bounds to frame the image
@@ -403,7 +404,7 @@ def create_image_plot(
 
 
 def create_layered_image_plot(
-    ax, layers, labels=None, title=None, origin="lower", margin=None
+        ax, layers, labels=None, title=None, origin="lower", margin=None
 ):
     """
     Create a plot using imshow built from discrete layers, and label those layers in the legend.
@@ -430,8 +431,8 @@ def create_layered_image_plot(
     values = list(range(1, len(labels) + 1))
     img_array = np.full(np.shape(layers[0]), np.nan)
     for (
-        i,
-        layer,
+            i,
+            layer,
     ) in enumerate(layers):
         img_array[np.where(np.logical_and(~np.isnan(layer), layer))] = values[i]
 
@@ -520,3 +521,89 @@ def colorbar(mappable: matplotlib.cm.ScalarMappable) -> matplotlib.colorbar.Colo
     cbar = fig.colorbar(mappable, cax=cax)
     plt.sca(last_axes)
     return cbar
+
+
+def create_mesh_plot_3d(
+        plotter: pv.Plotter,
+        mesh: pv.UnstructuredGrid,
+        electrode_nodes: ArrayLike = None,
+        title: str = "Mesh Plot",
+):
+    """
+    Create a 3D plot of a volumetric mesh, optionally with electrode nodes displayed
+
+    Parameters
+    ----------
+    plotter
+    mesh
+    electrode_nodes
+    title
+
+    Returns
+    -------
+    mesh_actor
+    title_actor
+    electrodes_actor
+
+    """
+    title_actor = plotter.add_title(title)
+
+    mesh_actor = plotter.add_mesh(mesh.extract_all_edges(), opacity=0.2)
+    if electrode_nodes is not None:
+        electrodes_actor = plotter.add_points(
+            mesh.points[electrode_nodes], color="red", label="Electrodes"
+        )
+        plotter.add_legend(bcolor=None)
+    else:
+        electrodes_actor = None
+
+    plotter.add_axes()
+
+    return mesh_actor, title_actor, electrodes_actor
+
+
+def create_3d_plot_with_slice(
+        plotter: pv.Plotter,
+        mesh: pv.UnstructuredGrid,
+        slice_axis="z",
+        title: str = "EIT Plot",
+        electrode_nodes: ArrayLike = None,
+):
+    """
+    Create a 3D plot of a pyvista mesh with a moveable slice
+
+    Parameters
+    ----------
+    plotter
+    mesh
+    slice_axis
+    title
+    electrode_nodes
+
+    Returns
+    -------
+    mesh_actor
+    plane_widget
+    """
+    title_actor = plotter.add_title(title)
+
+    mesh_actor = plotter.add_mesh(
+        mesh, opacity=0.15, show_edges=True, edge_color="gray"
+    )
+
+    if electrode_nodes is not None:
+        electrodes_actor = plotter.add_points(
+            mesh.points[electrode_nodes], color="red", label="Electrodes"
+        )
+        plotter.add_legend(bcolor=None)
+    else:
+        electrodes_actor = None
+
+    def plane_func(normal, origin):
+        slc = mesh.slice(normal=normal, origin=origin)
+        plotter.add_mesh(slc, name="slice", show_edges=True)
+
+    plane_widget = plotter.add_plane_widget(plane_func, assign_to_axis=slice_axis)
+    plotter.add_axes()
+
+    return mesh_actor, plane_widget, title_actor, electrodes_actor
