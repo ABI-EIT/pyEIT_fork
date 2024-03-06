@@ -8,6 +8,7 @@ from shapely.geometry import Polygon, Point, MultiLineString, LineString
 import shapely.affinity
 from pyeit.mesh import PyEITMesh
 from pathlib import Path
+import pyvista as pv
 
 
 def load_mesh(filename: str, dims: int = 2) -> PyEITMesh:
@@ -456,3 +457,49 @@ def map_points_to_perimeter(
     output_obj["intersecting_lines"] = intersecting_lines
 
     return intersections
+
+def place_electrodes_3d(
+    mesh: pv.UnstructuredGrid, n_electrodes: int, long_axis: str, slice_ratio: float
+) -> list:
+    """
+    Place electrodes on a specified slice of a 3D mesh using the place_electrodes_equal_spacing function
+
+    Parameters
+    ----------
+    mesh
+    n_electrodes
+    long_axis
+    slice_ratio
+
+    Returns
+    -------
+    electrode_nodes
+        Indices of electrode nodes
+
+    """
+    axis_ind = {"x": 0, "y": 1, "z": 2}[long_axis]
+    bmin = mesh.bounds[axis_ind * 2]
+    bmax = mesh.bounds[axis_ind * 2 + 1]
+    brange = bmax - bmin
+    slice_height = bmin + brange * slice_ratio
+    origin = mesh.center
+    origin[axis_ind] = slice_height
+    slice = mesh.extract_surface().slice(normal=long_axis, origin=origin).delaunay_2d()
+    slice_mesh = PyEITMesh(
+        node=np.delete(slice.points, axis_ind, axis=1),
+        element=slice.faces.reshape(-1, 4)[:, 1:],
+    )
+
+    slice_electrode_nodes = place_electrodes_equal_spacing(
+        slice_mesh, n_electrodes=n_electrodes
+    )
+    electrode_nodes_exterior = [
+        find_closest_point(node, mesh.extract_surface().points)
+        for node in slice.points[slice_electrode_nodes]
+    ]
+    electrode_nodes = [
+        find_closest_point(node, mesh.points)
+        for node in mesh.extract_surface().points[electrode_nodes_exterior]
+    ]
+
+    return electrode_nodes
