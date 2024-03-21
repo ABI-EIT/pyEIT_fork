@@ -12,6 +12,9 @@ from pathlib import Path
 import trimesh
 from shapely.geometry import LinearRing
 from shapely.ops import polygonize
+import matplotlib.pyplot as plt
+from pyeit.visual.plot import create_mesh_plot
+from shapely.geometry import Point
 
 parent_dir = str(Path(__file__).parent)
 
@@ -293,3 +296,35 @@ def test_map_points_to_perimeter():
             np.array(correct_intersections_list),
         )
     )
+
+
+def test_exact_points():
+    mesh_obj = load_mesh(parent_dir + "/data/Rectangle.STL")
+
+    plotting_obj = {}
+    exact_points = place_electrodes_equal_spacing(
+        mesh_obj,
+        n_electrodes=8,
+        starting_angle=np.pi,
+        starting_offset=0,
+        return_exact_points=True,
+        output_obj=plotting_obj,
+    )
+
+    # # Plot electrode placing data
+    # fig, ax = plt.subplots()
+    # create_mesh_plot(ax, mesh_obj)
+    # ax.plot(plotting_obj["centroid"][0], plotting_obj["centroid"][1], marker="o", ls="", color="red")
+    # ax.plot(*plotting_obj["exterior_polygon"].exterior.xy, color="crimson")
+    # ax.plot(*plotting_obj["intersecting_line"].intersection(plotting_obj["exterior_polygon"]).xy, color="crimson")
+    # ax.plot(*plotting_obj["intersection"].xy, marker="o", color="purple")
+    #
+    # for point in exact_points:
+    #     ax.plot(point[0], point[1], marker='o', color="green")
+    #
+    # plt.show()
+
+    correct_exact_points = [(25.0, 0.0), (5.0, 0.0), (0.0, 15.0), (5.0, 30.0), (25.0, 30.0), (45.0, 30.0), (50.0, 15.0),
+                            (45.0, 0.0)]
+
+    assert np.all(exact_points == correct_exact_points)

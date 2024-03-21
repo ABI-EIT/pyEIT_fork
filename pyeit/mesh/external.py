@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Tuple, Optional
 import numpy as np
+from numpy.typing import NDArray
 import struct
 import trimesh
 import shapely
@@ -81,8 +82,9 @@ def place_electrodes_equal_spacing(
     counter_clockwise: bool = False,
     chest_and_spine_ratio: float = 1,
     flat_plane: str = "z",
+    return_exact_points: bool = False,
     output_obj: Optional[dict] = None,
-) -> List[int]:
+) -> List[int] | List[Tuple[float]]:
     """
     Creates a list of coordinate indices representing electrodes equally spaced around the perimeter of the 2D input mesh
 
@@ -109,6 +111,8 @@ def place_electrodes_equal_spacing(
         spacing between electrodes 1 and N, and between electrodes (N/2)-1 and (N/2)+1 as a multiple of the remaining electrodes' spacing
     flat_plane
         plane in which to consider the mesh flat
+    return_exact_points
+        return the exact coordinates of the equal-spaced points instead of the closest matching nodes
     output_obj
         object to store optional output for plotting purposes
         structure: {centroid:trimesh object centroid,
@@ -120,6 +124,9 @@ def place_electrodes_equal_spacing(
     -------
     electrode_nodes
         node indices of equally spaced electrodes
+    or
+    exact_points
+        coordinates of the equal spaced points
 
     """
     if output_obj is None:
@@ -194,7 +201,11 @@ def place_electrodes_equal_spacing(
     output_obj["intersecting_line"] = plotting_obj["intersecting_line"]
     output_obj["intersection"] = intersection
 
-    return electrode_nodes
+    if return_exact_points:
+        exact_points = [(point.x, point.y) for point in electrode_points]
+        return exact_points
+    else:
+        return electrode_nodes
 
 
 def create_exterior_polygon(
