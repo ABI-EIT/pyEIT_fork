@@ -75,15 +75,15 @@ def load_mesh(filename: str, dims: int = 2) -> PyEITMesh:
 
 
 def place_electrodes_equal_spacing(
-    mesh: PyEITMesh,
-    n_electrodes: int = 16,
-    starting_angle: float = 0,
-    starting_offset: float = 0.5,
-    counter_clockwise: bool = False,
-    chest_and_spine_ratio: float = 1,
-    flat_plane: str = "z",
-    return_exact_points: bool = False,
-    output_obj: Optional[dict] = None,
+        mesh: PyEITMesh,
+        n_electrodes: int = 16,
+        starting_angle: float = 0,
+        starting_offset: float = 0.5,
+        counter_clockwise: bool = False,
+        chest_and_spine_ratio: float = 1,
+        flat_plane: str = "z",
+        return_exact_points: bool = False,
+        output_obj: Optional[dict] = None,
 ) -> List[int] | List[Tuple[float]]:
     """
     Creates a list of coordinate indices representing electrodes equally spaced around the perimeter of the 2D input mesh
@@ -148,7 +148,7 @@ def place_electrodes_equal_spacing(
 
     if chest_and_spine_ratio != 1:
         electrode_spacing = 1 / (
-            (n_electrodes - 2) + 2 * chest_and_spine_ratio
+                (n_electrodes - 2) + 2 * chest_and_spine_ratio
         )  # Normalized spacing
         chest_and_spine_spacing = 1 / (((n_electrodes - 2) / chest_and_spine_ratio) + 2)
         starting_offset_spacing = chest_and_spine_spacing * starting_offset
@@ -209,7 +209,7 @@ def place_electrodes_equal_spacing(
 
 
 def create_exterior_polygon(
-    trimesh_obj: trimesh.Trimesh,
+        trimesh_obj: trimesh.Trimesh,
 ) -> Polygon:
     """
     Create a polygon representing the exterior edge of the input mesh. The polygon is created by identifying the edges
@@ -233,9 +233,9 @@ def create_exterior_polygon(
     """
     edge_dict: dict = {}
     for (
-        edge
+            edge
     ) in (
-        trimesh_obj.edges_sorted
+            trimesh_obj.edges_sorted
     ):  # trimesh_obj.edges_sorted removes directionality from edges (eg. (0,3) and (3,0) both become (0,3)
         edge_bytes = edge.tobytes()  # tobytes() makes the edge array hashable
         if edge_bytes in edge_dict:
@@ -261,7 +261,7 @@ def create_exterior_polygon(
 
 
 def perimeter_point_from_centroid(
-    polygon: Polygon, angle: float, output_obj: Optional[dict] = None
+        polygon: Polygon, angle: float, output_obj: Optional[dict] = None
 ) -> Point:
     """
     Calculates a point on the perimeter of the input polygon which intersects with a line drawn from the centroid at a
@@ -302,7 +302,7 @@ def perimeter_point_from_centroid(
 
 
 def list_based_interpolate_distance(
-    zero_offset, starting_offset_spacing, spacing_list, reverse=False
+        zero_offset, starting_offset_spacing, spacing_list, reverse=False
 ):
     """
 
@@ -323,8 +323,8 @@ def list_based_interpolate_distance(
     # spacing_list[0] not used because extra offset is used instead
     interpolate_distances = [
         (
-            zero_offset
-            + (direction * (starting_offset_spacing + sum(spacing_list[1 : i + 1])))
+                zero_offset
+                + (direction * (starting_offset_spacing + sum(spacing_list[1: i + 1])))
         )
         % 1
         for i in range(len(spacing_list))
@@ -334,11 +334,11 @@ def list_based_interpolate_distance(
 
 
 def equal_spaced_interpolate_distance(
-    zero_offset: float,
-    starting_offset_spacing: float,
-    index: int,
-    total: int,
-    reverse: bool = False,
+        zero_offset: float,
+        starting_offset_spacing: float,
+        index: int,
+        total: int,
+        reverse: bool = False,
 ) -> float:
     """
     calculates distance for shapley interpolate function (normalized = True)
@@ -364,12 +364,12 @@ def equal_spaced_interpolate_distance(
     """
     if not reverse:
         interpolate_distance = (
-            zero_offset + (starting_offset_spacing + index * (1 / total))
-        ) % 1
+                                       zero_offset + (starting_offset_spacing + index * (1 / total))
+                               ) % 1
     else:
         interpolate_distance = (
-            zero_offset - (starting_offset_spacing + index * (1 / total))
-        ) % 1
+                                       zero_offset - (starting_offset_spacing + index * (1 / total))
+                               ) % 1
 
     return interpolate_distance
 
@@ -389,10 +389,10 @@ def find_closest_point(point: np.ndarray, point_list: np.ndarray) -> int:
 
 
 def map_points_to_perimeter(
-    mesh: PyEITMesh,
-    points: List[Tuple[float, float]],
-    output_obj: Optional[dict] = None,
-    map_to_nodes: Optional[bool] = True,
+        mesh: PyEITMesh,
+        points: List[Tuple[float, float]],
+        output_obj: Optional[dict] = None,
+        map_to_nodes: Optional[bool] = True,
 ) -> List[Point]:
     """
     Map a list of coordinates to points on the perimeter of a mesh. Coordinates are mapped by drawing a line
@@ -469,18 +469,28 @@ def map_points_to_perimeter(
 
     return intersections
 
+
 def place_electrodes_3d(
-    mesh: pv.UnstructuredGrid, n_electrodes: int, long_axis: str, slice_ratio: float
-) -> list:
+        mesh: pv.UnstructuredGrid, long_axis: str, slice_ratio: float, n_electrodes: int, starting_angle: float = 0,
+        starting_offset: float = 0.5, counter_clockwise: bool = False, chest_and_spine_ratio: float = 1,
+        exact_points: bool = False
+) -> list | Tuple[list, pv.UnstructuredGrid]:
     """
     Place electrodes on a specified slice of a 3D mesh using the place_electrodes_equal_spacing function
 
     Parameters
     ----------
     mesh
-    n_electrodes
     long_axis
     slice_ratio
+    n_electrodes
+    starting_angle
+    chest_and_spine_ratio
+    counter_clockwise
+    starting_offset
+    exact_points
+        place electrodes at the exact locations of the place_electrodes_equal_spacing function. This requires
+        modifying the original mesh to include these points.
 
     Returns
     -------
@@ -501,16 +511,38 @@ def place_electrodes_3d(
         element=slice.faces.reshape(-1, 4)[:, 1:],
     )
 
-    slice_electrode_nodes = place_electrodes_equal_spacing(
-        slice_mesh, n_electrodes=n_electrodes
-    )
-    electrode_nodes_exterior = [
-        find_closest_point(node, mesh.extract_surface().points)
-        for node in slice.points[slice_electrode_nodes]
-    ]
-    electrode_nodes = [
-        find_closest_point(node, mesh.points)
-        for node in mesh.extract_surface().points[electrode_nodes_exterior]
-    ]
+    if not exact_points:
+        slice_electrode_nodes = place_electrodes_equal_spacing(
+            slice_mesh, n_electrodes=n_electrodes, starting_angle=starting_angle, starting_offset=starting_offset,
+            counter_clockwise=counter_clockwise,
+            chest_and_spine_ratio=chest_and_spine_ratio
+        )
+        electrode_nodes_exterior = [
+            find_closest_point(node, mesh.extract_surface().points)
+            for node in slice.points[slice_electrode_nodes]
+        ]
+        electrode_nodes = [
+            find_closest_point(node, mesh.points)
+            for node in mesh.extract_surface().points[electrode_nodes_exterior]
+        ]
+        return electrode_nodes
+    else:
+        raise NotImplementedError()
+        electrode_nodes = []
+        mesh_rebuilt = pv.UnstructuredGrid(mesh.copy())
 
-    return electrode_nodes
+        electrode_coordinates = place_electrodes_equal_spacing(
+            slice_mesh, n_electrodes=n_electrodes, return_exact_points=True
+        )
+        electrode_coordinates_3D = np.hstack([electrode_coordinates, np.full(len(electrode_coordinates), slice_height)])
+
+        # For each electrode coordinate
+        # Find the closest element on the surface (Remember this is a 3D mesh e.g., tetrahedral)
+        # Delete that element
+        # Find groups of nodes in that element that are shared by another element
+        # For each group, create a new tetrahedron with the new coordinate
+
+        # or.. find the surface nodes
+        # Create new tetrahedra using all pairs of the surface nodes, the odd one out, and the new node
+
+        return electrode_nodes, mesh_rebuilt

@@ -15,6 +15,7 @@ from shapely.ops import polygonize
 import matplotlib.pyplot as plt
 from pyeit.visual.plot import create_mesh_plot
 from shapely.geometry import Point
+import pyvista as pv
 
 parent_dir = str(Path(__file__).parent)
 
@@ -328,3 +329,13 @@ def test_exact_points():
                             (45.0, 0.0)]
 
     assert np.all(exact_points == correct_exact_points)
+
+
+def test_place_electrodes_3d():
+
+    sphere = pv.Sphere()
+
+    
+
+    pass
+

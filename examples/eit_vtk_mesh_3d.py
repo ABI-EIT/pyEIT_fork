@@ -39,7 +39,7 @@ def main():
 
     # Recon
     # Set up eit object
-    pyeit_obj = JAC(mesh, protocol_obj)
+    pyeit_obj = JAC(mesh, protocol_obj) 
     pyeit_obj.setup(p=0.5, lamb=lamb, method="kotre", perm=1)
 
     # # Dynamic solve simulated data
